@@ -1,3 +1,5 @@
+This is a fork of SortAnon's Controllable TalkNet with the following modifications:
+* New singing models have been added.
 # Controllable TalkNet 
 Controllable TalkNet is a web application that lets you synthesize speech, 
 which mimics the pitch and pacing of an existing audio clip. It's based on [NVIDIA's implementation](https://github.com/NVIDIA/NeMo)
