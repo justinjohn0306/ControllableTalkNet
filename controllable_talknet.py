@@ -796,6 +796,12 @@ def generate_audio(
                     )
                 audio, audio_torch = rec_voc.vocode(new_spect)
 
+            # Output Mels
+            if True:
+                    mel = spect.to('cpu').squeeze().detach().numpy().transpose()
+                    np.save("Spect_"+os.path.basename(wav_name)[:-len(".wav")]+".npy",
+                        mel)
+
             # Auto-tuning
             if "pc" in pitch_options and "dra" not in pitch_options:
                 audio = extract_pitch.auto_tune(audio, audio_torch, f0s_wo_silence)
