@@ -4,6 +4,7 @@ This is a fork of SortAnon's Controllable TalkNet with the following modificatio
   audio into the current directory during generation. These spectrograms can be
   used with my fork of
   [ddsp-singing-vocoder](https://github.com/effusiveperiscope/ddsp-singing-vocoders)
+* An offline training notebook for training singing models is included: `TalkNet_Training_Offline_Singer.ipynb`
 # Controllable TalkNet 
 Controllable TalkNet is a web application that lets you synthesize speech, 
 which mimics the pitch and pacing of an existing audio clip. It's based on [NVIDIA's implementation](https://github.com/NVIDIA/NeMo)
