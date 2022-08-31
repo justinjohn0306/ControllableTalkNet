@@ -32,6 +32,7 @@ class TalkNetSingerModel(SpectrogramGenerator, Exportable):
         )
 
     def __init__(self, cfg: DictConfig, trainer: "Trainer" = None):
+        cfg.model.feat_in = 130
         super().__init__(cfg=cfg, trainer=trainer)
         typecheck.set_typecheck_enabled(enabled=False)
 
