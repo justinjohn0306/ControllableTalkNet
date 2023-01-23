@@ -797,7 +797,7 @@ def generate_audio(
                 audio, audio_torch = rec_voc.vocode(new_spect)
 
             # Output Mels
-            if True:
+            if False:
                     mel = spect.to('cpu').squeeze().detach().numpy().transpose()
                     np.save("Spect_"+os.path.basename(wav_name)[:-len(".wav")]+".npy",
                         mel)
