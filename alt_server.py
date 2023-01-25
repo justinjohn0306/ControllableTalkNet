@@ -1,4 +1,5 @@
 import os
+import pathlib
 import base64
 import torch
 import numpy as np
@@ -83,7 +84,7 @@ class AltTalknetServer:
         if not os.path.exists(os.path.join(RUN_PATH, "temp")):
             os.mkdir(os.path.join(RUN_PATH, "temp"))
         ffmpeg.input(os.path.join(RUN_PATH, wav_path)).output(
-            os.path.join(RUN_PATH, "temp", wav_path + "_conv.wav"),
+            os.path.join(RUN_PATH, "temp", os.path.basename(wav_path) + "_conv.wav"),
             ar="22050",
             ac="1",
             acodec="pcm_s16le",
@@ -91,7 +92,7 @@ class AltTalknetServer:
             fflags="+bitexact",
         ).overwrite_output().run(quiet=True)
         f0_with_silence, f0_wo_silence = self.extract_pitch.get_pitch(
-            os.path.join(RUN_PATH, "temp", wav_path + "_conv.wav"),
+            os.path.join(RUN_PATH, "temp", os.path.basename(wav_path) + "_conv.wav"),
             legacy=True,
         )
         self.wav_f0s[wav_path] = {
@@ -136,7 +137,7 @@ class AltTalknetServer:
                 tnpath = talknet_path
 
         token_list, tokens, arpa = self.extract_dur.get_tokens(transcript)
-        durs = self.extract_dur.get_duration(wav_name,
+        durs = self.extract_dur.get_duration(os.path.basename(wav_name),
             transcript, token_list)
 
         wav_f0_info = self.wav_f0s[wav_name]["f0_with_silence"]
@@ -186,10 +187,12 @@ def get_characters():
 @app.route('/upload', methods=['POST'])
 def post_audio():
     json_data = request.get_json()
+    ats.preprocess_wav(json_data["wav"])
     data, arpa, name = ats.generate_audio(
         json_data["char"],json_data["wav"],json_data["transcript"])
-    output_wav = os.path.join(json_data["results_dir"],name).with_suffix('.wav')
-    with open(output_wav,'w') as f:
+    output_wav = str(pathlib.Path(
+        os.path.join(json_data["results_dir"],name)).with_suffix('.wav'))
+    with open(output_wav,'wb') as f:
         f.write(data)
     return jsonify({"output_path":output_wav,"arpabet":arpa})
     
