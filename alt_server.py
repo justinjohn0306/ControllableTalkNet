@@ -169,7 +169,7 @@ class AltTalknetServer:
         buffer = io.BytesIO()
         wavfile.write(buffer, new_rate, sr_mix.astype(np.int16))
 
-        output_name = os.path.basename(wav_name) + "talknet"
+        output_name = pathlib.Path(os.path.basename(wav_name)).stem + "_"+char+"tn"
 
         if self.output_mels:
             mel = spect.to('cpu').squeeze().detach().numpy().transpose()
