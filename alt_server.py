@@ -80,7 +80,7 @@ class AltTalknetServer:
         pass
 
     # Pitch analysis
-    def preprocess_wav(self, wav_path):
+    def preprocess_wav(self, wav_path, pitch_factor=0):
         if not os.path.exists(os.path.join(RUN_PATH, "temp")):
             os.mkdir(os.path.join(RUN_PATH, "temp"))
         ffmpeg.input(os.path.join(RUN_PATH, wav_path)).output(
@@ -95,6 +95,10 @@ class AltTalknetServer:
             os.path.join(RUN_PATH, "temp", os.path.basename(wav_path) + "_conv.wav"),
             legacy=True,
         )
+        f0_factor = np.power(np.e, (0.0577623 * float(pitch_factor)))
+        f0_with_silence = [x * f0_factor for x in f0_with_silence]
+        f0_wo_silence = [x * f0_factor for x in f0_wo_silence]
+
         self.wav_f0s[wav_path] = {
             "f0_with_silence": f0_with_silence, 
             "f0_wo_silence": f0_wo_silence}
@@ -187,11 +191,17 @@ def get_characters():
 @app.route('/upload', methods=['POST'])
 def post_audio():
     json_data = request.get_json()
-    ats.preprocess_wav(json_data["wav"])
+    ats.preprocess_wav(json_data["wav"],
+        pitch_factor=json_data.get("transpose",0))
     data, arpa, name = ats.generate_audio(
         json_data["char"],json_data["wav"],json_data["transcript"])
     output_wav = str(pathlib.Path(
         os.path.join(json_data["results_dir"],name)).with_suffix('.wav'))
+    i = 1
+    while os.path.exists(output_wav):
+        output_wav = str(pathlib.Path(
+            os.path.join(json_data["results_dir"],name)+str(i)).with_suffix('.wav'))
+        i += 1
     with open(output_wav,'wb') as f:
         f.write(data)
     return jsonify({"output_path":output_wav,"arpabet":arpa})
