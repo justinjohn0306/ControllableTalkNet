@@ -5,7 +5,7 @@ This is a fork of SortAnon's Controllable TalkNet with the following modificatio
   used with my fork of
   [ddsp-singing-vocoder](https://github.com/effusiveperiscope/ddsp-singing-vocoders)
 * An offline training notebook for training singing models is included: `TalkNet_Training_Offline_Singer.ipynb`
-* An alternate server has been added under `alt_server.py`, designed to interface with []()
+* An alternate server has been added under `alt_server.py`, designed to interface with [this so-vits-svc fork](https://github.com/effusiveperiscope/so-vits-svc)
 
 # Controllable TalkNet 
 Controllable TalkNet is a web application that lets you synthesize speech, 
