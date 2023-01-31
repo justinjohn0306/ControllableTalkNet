@@ -41,7 +41,7 @@ class AltTalknetServer:
         self.last_voc = ""
         self.sr_voc = None
         self.init_model_mapping()
-        self.output_mels = True
+        self.output_mels = False
 
         #self.from_file0("test_file.txt")
 
