@@ -18,12 +18,14 @@ import ffmpeg
 import traceback
 import librosa
 import soundfile
+import gc
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 DEVICE = "cuda:0"
 RUN_PATH = os.path.dirname(os.path.realpath(__file__))
+OUTPUT_MELS = True
 
 # Assumes ref audio, no metallic noise reduction, no autotune
 class AltTalknetServer:
@@ -175,12 +177,8 @@ class AltTalknetServer:
 
         output_name = pathlib.Path(os.path.basename(wav_name)).stem + "_"+char+"tn"
 
-        if self.output_mels:
-            mel = spect.to('cpu').squeeze().detach().numpy().transpose()
-            np.save("TalkNet_"+os.path.basename(wav_name)[:-len(".wav")]+".npy",
-                mel)
-
-        return [buffer.getvalue(), arpa, output_name]
+        mel = spect.to('cpu').squeeze().detach().numpy().transpose()
+        return [buffer.getvalue(), arpa, output_name, mel]
 
 ats = AltTalknetServer()
 
@@ -193,10 +191,16 @@ def post_audio():
     json_data = request.get_json()
     ats.preprocess_wav(json_data["wav"],
         pitch_factor=json_data.get("transpose",0))
-    data, arpa, name = ats.generate_audio(
+    data, arpa, name, mel = ats.generate_audio(
         json_data["char"],json_data["wav"],json_data["transcript"])
     output_wav = str(pathlib.Path(
         os.path.join(json_data["results_dir"],name)).with_suffix('.wav'))
+
+    if OUTPUT_MELS:
+        output_mel = str(pathlib.Path(
+            os.path.join(json_data["results_dir"],name)).with_suffix('.npy'))
+        np.save(output_mel, mel)
+
     i = 1
     while os.path.exists(output_wav):
         output_wav = str(pathlib.Path(
@@ -204,6 +208,9 @@ def post_audio():
         i += 1
     with open(output_wav,'wb') as f:
         f.write(data)
+
+    gc.collect()
+    torch.cuda.empty_cache()
     return jsonify({"output_path":output_wav,"arpabet":arpa})
     
 if __name__ == '__main__':
