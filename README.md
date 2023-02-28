@@ -19,7 +19,7 @@ of TalkNet 2, with some changes to support singing synthesis and higher audio qu
 
 ## How to run
 ### Google Colab
-* [Go to the Colab notebook](https://colab.research.google.com/drive/1aj6Jk8cpRw7SsN3JSYCv57CrR6s0gYPB) and follow the instructions.
+* [Go to the Colab notebook](https://colab.research.google.com/drive/1sAbqSQj9P56TTpsU7bzbobzAxmydvUSA?usp=share_link) and follow the instructions.
 
 ### TalkNet Offline (Windows)
 * [Download the setup script](https://github.com/SortAnon/ControllableTalkNet/releases/latest/download/TalkNetOffline.zip)
