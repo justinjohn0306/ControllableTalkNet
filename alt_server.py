@@ -196,9 +196,14 @@ def get_characters():
 @app.route('/upload', methods=['POST'])
 def post_audio():
     json_data = request.get_json()
-    ats.preprocess_wav(json_data["wav"],
-        pitch_factor=json_data.get("transpose",0))
     dra = json_data.get("disable_reference_audio", False)
+    if (not dra) and os.path.exists(json_data["wav"]):
+        print("Error - requested input wav "+json_data["wav"]+
+            " doesn't exist!")
+        return
+    if not dra:
+        ats.preprocess_wav(json_data["wav"],
+            pitch_factor=json_data.get("transpose",0))
     data, arpa, name, mel = ats.generate_audio(
         json_data["char"],json_data["wav"],json_data["transcript"],
         disable_reference_audio = dra)
