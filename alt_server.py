@@ -107,7 +107,8 @@ class AltTalknetServer:
         pass
 
     # Audio generation
-    def generate_audio(self, char, wav_name, transcript):
+    def generate_audio(self, char, wav_name, transcript,
+        disable_reference_audio = False):
         if transcript is None or transcript.strip() == "":
             raise ValueError("Empty transcript")
         pass
@@ -143,26 +144,32 @@ class AltTalknetServer:
                 tnpath = talknet_path
 
         token_list, tokens, arpa = self.extract_dur.get_tokens(transcript)
-        durs = self.extract_dur.get_duration(os.path.basename(wav_name),
-            transcript, token_list)
+        if disable_reference_audio:
+            if tndurs is None or tnpitch is None:
+                print("Error: Model has no pitch predictor;"
+                 " cannot generate without reference audio.")
+                return [None, None, None, None]
+            spect = tnmodel.generate_spectrogram(tokens=tokens)
+        else:
+            durs = self.extract_dur.get_duration(os.path.basename(wav_name),
+                transcript, token_list)
 
-        wav_f0_info = self.wav_f0s[wav_name]["f0_with_silence"]
+            wav_f0_info = self.wav_f0s[wav_name]["f0_with_silence"]
 
-        spect = tnmodel.force_spectrogram(
-            tokens=tokens,
-            durs=torch.from_numpy(durs)
-            .view(1, -1)
-            .type(torch.LongTensor)
-            .to(DEVICE),
-            f0=torch.FloatTensor(wav_f0_info).view(1, -1).to(DEVICE),
-        )
+            spect = tnmodel.force_spectrogram(
+                tokens=tokens,
+                durs=torch.from_numpy(durs)
+                .view(1, -1)
+                .type(torch.LongTensor)
+                .to(DEVICE),
+                f0=torch.FloatTensor(wav_f0_info).view(1, -1).to(DEVICE),
+            )
 
         # Vocoding
         if self.last_voc != vocoder_path:
             self.voc = vocoder.HiFiGAN(vocoder_path, "config_v1", DEVICE)
             self.last_voc = vocoder_path
         audio, audio_torch = self.voc.vocode(spect)
-        # Something here is leaking memory ^^^
 
         # Super-resolution
         if self.sr_voc is None:
@@ -191,8 +198,10 @@ def post_audio():
     json_data = request.get_json()
     ats.preprocess_wav(json_data["wav"],
         pitch_factor=json_data.get("transpose",0))
+    dra = json_data.get("disable_reference_audio", False)
     data, arpa, name, mel = ats.generate_audio(
-        json_data["char"],json_data["wav"],json_data["transcript"])
+        json_data["char"],json_data["wav"],json_data["transcript"],
+        disable_reference_audio = dra)
     output_wav = str(pathlib.Path(
         os.path.join(json_data["results_dir"],name)).with_suffix('.wav'))
 
