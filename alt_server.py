@@ -219,7 +219,7 @@ def get_characters():
 def post_audio():
     json_data = request.get_json()
     dra = json_data.get("disable_reference_audio", False)
-    if (not dra) and os.path.exists(json_data["wav"]):
+    if (not dra) and (not os.path.exists(json_data["wav"])):
         print("Error - requested input wav "+json_data["wav"]+
             " doesn't exist!")
         return
