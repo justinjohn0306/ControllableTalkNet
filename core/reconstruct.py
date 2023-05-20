@@ -21,7 +21,6 @@ import numpy as np
 import torch.nn.functional as func
 from torch import nn
 import math
-from taming.models.vqgan import VQModel
 
 sys.path.append("hifi-gan")
 from meldataset import MAX_WAV_VALUE, mel_spectrogram
