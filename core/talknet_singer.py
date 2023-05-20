@@ -31,7 +31,7 @@ class TalkNetSingerModel(SpectrogramGenerator, Exportable):
             {"mel-spectrogram": NeuralType(("B", "D", "T"), MelSpectrogramType())}
         )
 
-    def __init__(self, cfg: DictConfig, trainer: "Trainer" = None):
+    def __init__(self, cfg: DictConfig, trainer: "Trainer" = Trainer()): # hack
         cfg.model.feat_in = 130
         super().__init__(cfg=cfg, trainer=trainer)
         typecheck.set_typecheck_enabled(enabled=False)
