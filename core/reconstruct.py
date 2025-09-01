@@ -22,6 +22,18 @@ import torch.nn.functional as func
 from torch import nn
 import math
 
+# --- Shim for PyTorch Lightning backwards-compatibility ---
+try:
+    from pytorch_lightning.utilities import rank_zero
+    import types
+    # Create a fake module alias so taming can import old path
+    sys.modules['pytorch_lightning.utilities.distributed'] = rank_zero
+except ImportError:
+    pass
+
+from taming.models.vqgan import VQModel
+
+
 sys.path.append("hifi-gan")
 from meldataset import MAX_WAV_VALUE, mel_spectrogram
 
