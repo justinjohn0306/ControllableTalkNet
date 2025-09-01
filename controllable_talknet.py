@@ -22,9 +22,10 @@ import time
 import uuid
 from core import extract, vocoder, reconstruct
 from core.download import download_from_drive, download_reconst
+from pytorch_lightning import Trainer
 
 app = JupyterDash(__name__)
-DEVICE = "cuda:0"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CPU_PITCH = False
 RUN_PATH = os.path.dirname(os.path.realpath(__file__))
 if RUN_PATH == "/content":
@@ -675,6 +676,7 @@ voc, last_voc, sr_voc, rec_voc = None, None, None, None
         dash.dependencies.State("current-f0s-nosilence", "data"),
     ],
 )
+
 def generate_audio(
     n_clicks,
     model,
@@ -693,29 +695,15 @@ def generate_audio(
     if model is None:
         return [None, "No character selected", playback_hide, None]
     if transcript is None or transcript.strip() == "":
-        return [
-            None,
-            "No transcript entered",
-            playback_hide,
-            None,
-        ]
+        return [None, "No transcript entered", playback_hide, None]
     if wav_name is None and "dra" not in pitch_options:
-        return [
-            None,
-            "No reference audio selected",
-            playback_hide,
-            None,
-        ]
+        return [None, "No reference audio selected", playback_hide, None]
+
     load_error, talknet_path, vocoder_path = download_from_drive(
         model.split("|")[0], custom_model, RUN_PATH
     )
     if load_error is not None:
-        return [
-            None,
-            load_error,
-            playback_hide,
-            None,
-        ]
+        return [None, load_error, playback_hide, None]
 
     try:
         with torch.no_grad():
@@ -727,6 +715,10 @@ def generate_audio(
                     tnmodel = TalkNetSingerModel.restore_from(singer_path)
                 else:
                     tnmodel = TalkNetSpectModel.restore_from(talknet_path)
+
+                # attach dummy trainer
+                tnmodel._trainer = Trainer(logger=False, enable_checkpointing=False)
+
                 durs_path = os.path.join(
                     os.path.dirname(talknet_path), "TalkNetDurs.nemo"
                 )
@@ -735,12 +727,16 @@ def generate_audio(
                 )
                 if os.path.exists(durs_path):
                     tndurs = TalkNetDursModel.restore_from(durs_path)
+                    tndurs._trainer = Trainer(logger=False, enable_checkpointing=False)
                     tnmodel.add_module("_durs_model", tndurs)
+
                     tnpitch = TalkNetPitchModel.restore_from(pitch_path)
+                    tnpitch._trainer = Trainer(logger=False, enable_checkpointing=False)
                     tnmodel.add_module("_pitch_model", tnpitch)
                 else:
                     tndurs = None
                     tnpitch = None
+
                 tnmodel.eval()
                 tnpath = talknet_path
 
@@ -748,12 +744,7 @@ def generate_audio(
             token_list, tokens, arpa = extract_dur.get_tokens(transcript)
             if "dra" in pitch_options:
                 if tndurs is None or tnpitch is None:
-                    return [
-                        None,
-                        "Model doesn't support pitch prediction",
-                        playback_hide,
-                        None,
-                    ]
+                    return [None, "Model doesn't support pitch prediction", playback_hide, None]
                 spect = tnmodel.generate_spectrogram(tokens=tokens)
             else:
                 durs = extract_dur.get_duration(wav_name, transcript, token_list)
@@ -766,10 +757,7 @@ def generate_audio(
 
                 spect = tnmodel.force_spectrogram(
                     tokens=tokens,
-                    durs=torch.from_numpy(durs)
-                    .view(1, -1)
-                    .type(torch.LongTensor)
-                    .to(DEVICE),
+                    durs=torch.from_numpy(durs).view(1, -1).type(torch.LongTensor).to(DEVICE),
                     f0=torch.FloatTensor(f0s).view(1, -1).to(DEVICE),
                 )
 
@@ -783,24 +771,14 @@ def generate_audio(
             if "srec" in pitch_options:
                 load_error = download_reconst(RUN_PATH)
                 if load_error is not None:
-                    return [
-                        None,
-                        load_error,
-                        playback_hide,
-                        None,
-                    ]
+                    return [None, load_error, playback_hide, None]
+
                 new_spect = reconstruct_inst.reconstruct(spect)
                 if rec_voc is None:
                     rec_voc = vocoder.HiFiGAN(
                         os.path.join(RUN_PATH, "models", "hifirec"), "config_v1", DEVICE
                     )
                 audio, audio_torch = rec_voc.vocode(new_spect)
-
-            # Output Mels
-            if False:
-                    mel = spect.to('cpu').squeeze().detach().numpy().transpose()
-                    np.save("Spect_"+os.path.basename(wav_name)[:-len(".wav")]+".npy",
-                        mel)
 
             # Auto-tuning
             if "pc" in pitch_options and "dra" not in pitch_options:
@@ -821,13 +799,10 @@ def generate_audio(
 
             output_name = "TalkNet_" + str(int(time.time()))
             return [sound, arpa, playback_style, output_name]
+
     except Exception:
-        return [
-            None,
-            str(traceback.format_exc()),
-            playback_hide,
-            None,
-        ]
+        return [None, str(traceback.format_exc()), playback_hide, None]
+
 
 
 if __name__ == "__main__":
